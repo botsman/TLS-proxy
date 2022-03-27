@@ -101,7 +101,12 @@ func (p *Proxy) ListenAndServe() error {
 	})
 
 	http.HandleFunc("/sign", func(w http.ResponseWriter, r *http.Request) {
-		privateKey, err := loadPrivateKey(r.Header.Get(KeyHeader))
+		keyContent, err := p.KeyLoader.LoadKey(r.Header.Get(KeyHeader))
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+		privateKey, err := loadPrivateKey(keyContent)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

@@ -10,23 +10,10 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 )
 
-func readKey(path string) ([]byte, error) {
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
-}
-
-func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
-	keyContent, err := readKey(path)
-	if err != nil {
-		return nil, err
-	}
-	block, _ := pem.Decode(keyContent)
+func loadPrivateKey(key []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(key)
 	if block == nil {
 		return nil, errors.New("failed to parse PEM private key")
 	}
