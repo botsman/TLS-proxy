@@ -2,6 +2,8 @@
 
 Simple proxy server meant to be run in secure a Google Cloud environment.
 
+In order to use it with Google Cloud Secret manager you need to specify `projectId` environment variable.
+
 Server support two use-cases:
 1. TLS connection to any server using TLS certificates from Google Cloud Secret Manager
 

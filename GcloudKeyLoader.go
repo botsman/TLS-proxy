@@ -23,7 +23,7 @@ func (g GcloudKeyLoader) LoadKey(key string) ([]byte, error) {
 			log.Fatal(err)
 		}
 	}(client)
-	secretPath := fmt.Sprintf("projects/enablebanking-tilisy-devel/secrets/%s/versions/latest", key)
+	secretPath := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectId, key)
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: secretPath,
 	}
