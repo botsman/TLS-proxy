@@ -1,12 +1,14 @@
 # TLS and eIDAS proxy server
 
-Simple proxy server meant to be run in secure Google Cloud environment.
+Simple proxy server meant to be run in secure a Google Cloud environment.
 
 Server support two use-cases:
 1. TLS connection to any server using TLS certificates from Google Cloud Secret Manager
 
-TLS connection is implemented using regular proxy server.
-You need to specify name of a public certificate and a private key in the following headers:
+TLS connection is implemented using POST method, because CONNECT method is not supported by some cloud providers
+You need to specify request method, url, name of a public certificate and a private key in the following headers:
+`X-Proxy-Method`
+`X-Proxy-Url`
 `X-Cert`
 `X-Key`
 Those headers are removed from actual request

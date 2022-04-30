@@ -3,6 +3,7 @@ package main
 import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"context"
+	"fmt"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"log"
 )
@@ -22,8 +23,9 @@ func (g GcloudKeyLoader) LoadKey(key string) ([]byte, error) {
 			log.Fatal(err)
 		}
 	}(client)
+	secretPath := fmt.Sprintf("projects/enablebanking-tilisy-devel/secrets/%s/versions/latest", key)
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: key,
+		Name: secretPath,
 	}
 	result, err := client.AccessSecretVersion(ctx, accessRequest)
 	if err != nil {

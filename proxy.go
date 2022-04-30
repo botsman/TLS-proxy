@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 )
@@ -36,36 +37,50 @@ func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (*tls.Config, erro
 
 func (p *Proxy) ListenAndServe() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Scheme == "" {
-			// This handler is expected to handle proxy requests.
-			// It should not be used for the regular request.
-			// Perhaps there is a better way to handle this.
-			http.Error(w, "Bad request", http.StatusBadRequest)
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		transport := http.Transport{}
 		tlsConfig, err := p.GetTLSConfig(r.Header.Get(CertHeader), r.Header.Get(KeyHeader))
 		if err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		r.Header.Del(CertHeader)
 		r.Header.Del(KeyHeader)
+		urlString := r.Header.Get(UrlHeader)
+		if urlString == "" {
+			http.Error(w, "Url not provided", http.StatusBadRequest)
+			return
+		}
+		//requestUrl, err := url.Parse(urlString)
+		requestUrl, err := url.Parse("https://postman-echo.com/post")
+		if err != nil {
+			http.Error(w, "Bad url", http.StatusBadRequest)
+			return
+		}
+		r.Header.Del(UrlHeader)
+		method := r.Header.Get(MethodHeader)
+		if method == "" {
+			method = "GET"
+		}
+		r.Header.Del(MethodHeader)
+		followRedirectsHeader := r.Header.Get(FollowRedirectsHeader)
+		r.Header.Del(FollowRedirectsHeader)
+		followRedirects, err := strconv.ParseBool(followRedirectsHeader)
+		if err != nil {
+			followRedirects = true
+		}
 		outReq := &http.Request{
-			Method: r.Method,
-			URL:    r.URL,
+			Method: method,
+			URL:    requestUrl,
 			Header: r.Header,
 			Body:   r.Body,
 		}
 
 		if tlsConfig != nil {
 			transport.TLSClientConfig = tlsConfig
-		}
-		followRedirectsHeader := r.Header.Get(FollowRedirectsHeader)
-		r.Header.Del(FollowRedirectsHeader)
-		followRedirects, err := strconv.ParseBool(followRedirectsHeader)
-		if err != nil {
-			followRedirects = true
 		}
 		client := &http.Client{
 			Transport: &transport,
@@ -101,9 +116,13 @@ func (p *Proxy) ListenAndServe() error {
 	})
 
 	http.HandleFunc("/sign", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		keyContent, err := p.KeyLoader.LoadKey(r.Header.Get(KeyHeader))
 		if err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
+			http.Error(w, "Error loading key", http.StatusBadRequest)
 			return
 		}
 		privateKey, err := loadPrivateKey(keyContent)
