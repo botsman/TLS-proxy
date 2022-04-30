@@ -54,8 +54,7 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, "Url not provided", http.StatusBadRequest)
 			return
 		}
-		//requestUrl, err := url.Parse(urlString)
-		requestUrl, err := url.Parse("https://postman-echo.com/post")
+		requestUrl, err := url.Parse(urlString)
 		if err != nil {
 			http.Error(w, "Bad url", http.StatusBadRequest)
 			return
