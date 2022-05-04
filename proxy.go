@@ -32,6 +32,7 @@ func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (*tls.Config, erro
 		return nil, err
 	}
 	tlsConfig.Certificates = []tls.Certificate{certificate}
+	tlsConfig.InsecureSkipVerify = true
 	return tlsConfig, nil
 }
 
