@@ -44,6 +44,6 @@ func sign(privateKey *rsa.PrivateKey, data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
+	encodedSignature := base64.StdEncoding.EncodeToString(signature)
 	return encodedSignature, nil
 }

@@ -63,7 +63,8 @@ func (p *Proxy) ListenAndServe() error {
 		r.Header.Del(UrlHeader)
 		method := r.Header.Get(MethodHeader)
 		if method == "" {
-			method = "GET"
+			http.Error(w, "Method not provided", http.StatusBadRequest)
+			return
 		}
 		r.Header.Del(MethodHeader)
 		followRedirectsHeader := r.Header.Get(FollowRedirectsHeader)
