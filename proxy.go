@@ -121,6 +121,12 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		algorithmString := r.Header.Get(SignAlgorithmHeader)
+		if algorithmString == "" {
+			http.Error(w, "Algorithm not provided", http.StatusBadRequest)
+			return
+		}
+		r.Header.Del(SignAlgorithmHeader)
 		keyContent, err := p.KeyLoader.LoadKey(r.Header.Get(KeyHeader))
 		if err != nil {
 			http.Error(w, "Error loading key", http.StatusBadRequest)
@@ -137,7 +143,11 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		signature, err := sign(privateKey, body)
+		algorithm := map[string]int{
+			"rs256": rs256,
+			"ps256": ps256,
+		}[algorithmString]
+		signature, err := sign(privateKey, body, algorithm)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
