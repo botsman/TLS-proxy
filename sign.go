@@ -12,6 +12,11 @@ import (
 	"fmt"
 )
 
+const (
+	rs256 = iota
+	ps256
+)
+
 func loadPrivateKey(key []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(key)
 	if block == nil {
@@ -36,14 +41,22 @@ func loadPrivateKey(key []byte) (*rsa.PrivateKey, error) {
 	}
 }
 
-func sign(privateKey *rsa.PrivateKey, data []byte) (string, error) {
+func sign(privateKey *rsa.PrivateKey, data []byte, algorithm int) (string, error) {
 	hash := sha256.New()
 	hash.Write(data)
 	hashed := hash.Sum(nil)
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed)
+	var signature []byte
+	var err error
+	switch algorithm {
+	case rs256:
+		signature, err = rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed)
+	case ps256:
+		signature, err = rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, hashed, nil)
+	default:
+		return "", errors.New("unsupported algorithm")
+	}
 	if err != nil {
 		return "", err
 	}
-	encodedSignature := base64.StdEncoding.EncodeToString(signature)
-	return encodedSignature, nil
+	return base64.StdEncoding.EncodeToString(signature), nil
 }
