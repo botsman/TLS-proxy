@@ -123,11 +123,15 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		algorithmString := r.Header.Get(SignAlgorithmHeader)
 		if algorithmString == "" {
-			http.Error(w, "Algorithm not provided", http.StatusBadRequest)
+			http.Error(w, "No "+SignAlgorithmHeader+" header specified", http.StatusBadRequest)
 			return
 		}
-		r.Header.Del(SignAlgorithmHeader)
-		keyContent, err := p.KeyLoader.LoadKey(r.Header.Get(KeyHeader))
+		keyName := r.Header.Get(KeyHeader)
+		if keyName == "" {
+			http.Error(w, "No "+KeyHeader+" header specified", http.StatusBadRequest)
+			return
+		}
+		keyContent, err := p.KeyLoader.LoadKey(keyName)
 		if err != nil {
 			http.Error(w, "Error loading key", http.StatusBadRequest)
 			return
@@ -137,16 +141,20 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		r.Header.Del(KeyHeader)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		algorithm := map[string]int{
+		algorithmMap := map[string]int{
 			"rs256": rs256,
 			"ps256": ps256,
-		}[algorithmString]
+		}
+		algorithm, ok := algorithmMap[algorithmString]
+		if !ok {
+			http.Error(w, "Unsupported algorithm", http.StatusBadRequest)
+			return
+		}
 		signature, err := sign(privateKey, body, algorithm)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
