@@ -51,7 +51,10 @@ func sign(privateKey *rsa.PrivateKey, data []byte, algorithm int) (string, error
 	case rs256:
 		signature, err = rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed)
 	case ps256:
-		signature, err = rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, hashed, nil)
+		var opts rsa.PSSOptions
+		opts.SaltLength = rsa.PSSSaltLengthEqualsHash
+		opts.Hash = crypto.SHA256
+		signature, err = rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, hashed, &opts)
 	default:
 		return "", errors.New("unsupported algorithm")
 	}
