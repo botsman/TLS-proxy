@@ -14,26 +14,23 @@ type Proxy struct {
 	KeyLoader KeyLoader
 }
 
-func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (*tls.Config, error) {
+func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (tls.Config, error) {
 	if certPath == "" && keyPath == "" {
-		return nil, nil
+		return tls.Config{}, nil
 	}
-	tlsConfig := &tls.Config{}
 	cert, err := p.KeyLoader.LoadKey(certPath)
 	if err != nil {
-		return nil, err
+		return tls.Config{}, err
 	}
 	key, err := p.KeyLoader.LoadKey(keyPath)
 	if err != nil {
-		return nil, err
+		return tls.Config{}, err
 	}
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		return nil, err
+		return tls.Config{}, err
 	}
-	tlsConfig.Certificates = []tls.Certificate{certificate}
-	tlsConfig.InsecureSkipVerify = true
-	return tlsConfig, nil
+	return tls.Config{Certificates: []tls.Certificate{certificate}, InsecureSkipVerify: true}, nil
 }
 
 func (p *Proxy) ListenAndServe() error {
@@ -42,7 +39,6 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		transport := http.Transport{}
 		tlsConfig, err := p.GetTLSConfig(r.Header.Get(CertHeader), r.Header.Get(KeyHeader))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -80,11 +76,10 @@ func (p *Proxy) ListenAndServe() error {
 			Body:   r.Body,
 		}
 
-		if tlsConfig != nil {
-			transport.TLSClientConfig = tlsConfig
-		}
 		client := &http.Client{
-			Transport: &transport,
+			Transport: &http.Transport{
+				TLSClientConfig: &tlsConfig,
+			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if followRedirects {
 					return nil
