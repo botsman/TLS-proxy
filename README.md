@@ -9,16 +9,18 @@ Server supports two use-cases:
 
 TLS connection is implemented using POST method, because CONNECT method is not supported by some cloud providers  
 You need to specify request method, url, name of a public certificate and a private key in the following headers:  
-`X-Proxy-Method`  
-`X-Proxy-Url`  
-`X-Cert`  
-`X-Key`  
+`X-Proxy-Method` -- HTTP method   
+`X-Proxy-Url` -- requested URL  
+`X-Proxy-Cert` -- TLS public certificate name/path  
+`X-Proxy-Key` -- TLS private key name/path  
+`X-Proxy-Follow-Redirects` -- Flag whether proxy should follow redirects
 Those headers are removed from actual request  
-You can also specify `X-Follow-Redirects` header to follow redirects  
 
 
 2. Signing data with eIDAS private key  
-In order to do that just send a request to `/sign` endpoint with your data in the body and `X-Key` header  
+In order to do that just send a request to `/sign` endpoint with your data in the body and following headers:  
+`X-Proxy-Key` -- private key name/path  
+`X-Proxy-Signature-Algorithm` -- signature algorithm (supported rs256 and ps256 values)  
 
 Proxy is meant to be run in the secured environment, that is why no authentication is implemented.  
 
