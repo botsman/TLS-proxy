@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Proxy struct {
@@ -44,8 +45,6 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		r.Header.Del(CertHeader)
-		r.Header.Del(KeyHeader)
 		urlString := r.Header.Get(UrlHeader)
 		if urlString == "" {
 			http.Error(w, "Url not provided", http.StatusBadRequest)
@@ -56,23 +55,28 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, "Bad url", http.StatusBadRequest)
 			return
 		}
-		r.Header.Del(UrlHeader)
 		method := r.Header.Get(MethodHeader)
 		if method == "" {
 			http.Error(w, "Method not provided", http.StatusBadRequest)
 			return
 		}
-		r.Header.Del(MethodHeader)
 		followRedirectsHeader := r.Header.Get(FollowRedirectsHeader)
-		r.Header.Del(FollowRedirectsHeader)
 		followRedirects, err := strconv.ParseBool(followRedirectsHeader)
 		if err != nil {
 			followRedirects = true
 		}
+		outReqHeaders := map[string][]string{}
+		canonicalPrefix := http.CanonicalHeaderKey(RequestHeaderPrefix)
+		for key, value := range r.Header {
+			canonicalKey := http.CanonicalHeaderKey(key)
+			if strings.HasPrefix(canonicalKey, canonicalPrefix) {
+				outReqHeaders[strings.TrimPrefix(canonicalKey, canonicalPrefix)] = value
+			}
+		}
 		outReq := &http.Request{
 			Method: method,
 			URL:    requestUrl,
-			Header: r.Header,
+			Header: outReqHeaders,
 			Body:   r.Body,
 		}
 
