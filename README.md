@@ -15,7 +15,7 @@ You need to specify request method, url, name of a public certificate and a priv
 `X-Proxy-Key` -- TLS private key name/path  
 `X-Proxy-Follow-Redirects` -- Flag whether proxy should follow redirects
 
-All headers which you want to pass to the actual server should be prefixed with `X-Proxy-Header-`
+All headers which you want to pass to the actual server should be prefixed with `X-Request-`
 
 
 2. Signing data with eIDAS private key  
