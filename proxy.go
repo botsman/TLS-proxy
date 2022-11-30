@@ -31,7 +31,11 @@ func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (tls.Config, error
 	if err != nil {
 		return tls.Config{}, err
 	}
-	return tls.Config{Certificates: []tls.Certificate{certificate}, InsecureSkipVerify: true}, nil
+	return tls.Config{
+		Certificates:       []tls.Certificate{certificate},
+		Renegotiation:      tls.RenegotiateOnceAsClient,
+		InsecureSkipVerify: true,
+	}, nil
 }
 
 func (p *Proxy) ListenAndServe() error {
