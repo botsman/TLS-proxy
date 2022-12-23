@@ -15,27 +15,28 @@ type Proxy struct {
 	KeyLoader KeyLoader
 }
 
-func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (tls.Config, error) {
+func (p *Proxy) GetTLSConfig(certPath string, keyPath string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
 	if certPath == "" && keyPath == "" {
-		return tls.Config{}, nil
+		return tlsConfig, nil
 	}
 	cert, err := p.KeyLoader.LoadKey(certPath)
 	if err != nil {
-		return tls.Config{}, err
+		return tlsConfig, err
 	}
 	key, err := p.KeyLoader.LoadKey(keyPath)
 	if err != nil {
-		return tls.Config{}, err
+		return tlsConfig, err
 	}
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		return tls.Config{}, err
+		return tlsConfig, err
 	}
-	return tls.Config{
-		Certificates:       []tls.Certificate{certificate},
-		Renegotiation:      tls.RenegotiateOnceAsClient,
-		InsecureSkipVerify: true,
-	}, nil
+	tlsConfig.Certificates = []tls.Certificate{certificate}
+	tlsConfig.Renegotiation = tls.RenegotiateOnceAsClient
+	return tlsConfig, nil
 }
 
 func (p *Proxy) ListenAndServe() error {
@@ -86,7 +87,7 @@ func (p *Proxy) ListenAndServe() error {
 
 		client := &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tlsConfig,
+				TLSClientConfig: tlsConfig,
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if followRedirects {
