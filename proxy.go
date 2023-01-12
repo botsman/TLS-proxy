@@ -78,12 +78,20 @@ func (p *Proxy) ListenAndServe() error {
 				outReqHeaders[strings.TrimPrefix(canonicalKey, canonicalPrefix)] = value
 			}
 		}
+		bodyString, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		outReq := &http.Request{
 			Method: method,
 			URL:    requestUrl,
 			Header: outReqHeaders,
-			Body:   r.Body,
+			Body:   io.NopCloser(strings.NewReader(string(bodyString))),
 		}
+		// Explicitly set the content length to avoid chunked encoding
+		outReq.ContentLength = int64(len(bodyString))
 
 		client := &http.Client{
 			Transport: &http.Transport{
