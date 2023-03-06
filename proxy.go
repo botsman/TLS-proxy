@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -50,82 +50,50 @@ func (p *Proxy) ListenAndServe() error {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		urlString := r.Header.Get(UrlHeader)
-		if urlString == "" {
-			http.Error(w, "Url not provided", http.StatusBadRequest)
-			return
-		}
-		requestUrl, err := url.Parse(urlString)
-		if err != nil {
-			http.Error(w, "Bad url", http.StatusBadRequest)
-			return
-		}
-		method := r.Header.Get(MethodHeader)
-		if method == "" {
-			http.Error(w, "Method not provided", http.StatusBadRequest)
-			return
-		}
-		followRedirectsHeader := r.Header.Get(FollowRedirectsHeader)
-		followRedirects, err := strconv.ParseBool(followRedirectsHeader)
-		if err != nil {
-			followRedirects = true
-		}
-		outReqHeaders := map[string][]string{}
-		canonicalPrefix := http.CanonicalHeaderKey(RequestHeaderPrefix)
-		for key, value := range r.Header {
-			canonicalKey := http.CanonicalHeaderKey(key)
-			if strings.HasPrefix(canonicalKey, canonicalPrefix) {
-				outReqHeaders[strings.TrimPrefix(canonicalKey, canonicalPrefix)] = value
-			}
-		}
-		bodyString, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		outReq := &http.Request{
-			Method: method,
-			URL:    requestUrl,
-			Header: outReqHeaders,
-			Body:   io.NopCloser(strings.NewReader(string(bodyString))),
-		}
-		// Explicitly set the content length to avoid chunked encoding
-		outReq.ContentLength = int64(len(bodyString))
-
-		client := &http.Client{
+		proxy := httputil.ReverseProxy{
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
 			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if followRedirects {
-					return nil
+			Director: func(request *http.Request) {
+				urlString := r.Header.Get(UrlHeader)
+				if urlString == "" {
+					http.Error(w, "Url not provided", http.StatusBadRequest)
+					return
 				}
-				return http.ErrUseLastResponse
+				requestUrl, err := url.Parse(urlString)
+				if err != nil {
+					http.Error(w, "Bad url", http.StatusBadRequest)
+					return
+				}
+				request.URL = requestUrl
+				method := r.Header.Get(MethodHeader)
+				if method == "" {
+					http.Error(w, "Method not provided", http.StatusBadRequest)
+					return
+				}
+				request.Method = method
+				outReqHeaders := map[string][]string{}
+				canonicalPrefix := http.CanonicalHeaderKey(RequestHeaderPrefix)
+				for key, value := range request.Header {
+					canonicalKey := http.CanonicalHeaderKey(key)
+					if strings.HasPrefix(canonicalKey, canonicalPrefix) {
+						outReqHeaders[strings.TrimPrefix(canonicalKey, canonicalPrefix)] = value
+					}
+				}
+				request.Header = outReqHeaders
+				bodyCopy := &bytes.Buffer{}
+				b, err := io.Copy(bodyCopy, r.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+				// Explicitly set the content length to avoid chunked encoding
+				request.ContentLength = b
+				request.Host = requestUrl.Host
+				request.Body = io.NopCloser(bodyCopy)
 			},
 		}
-		resp, err := client.Do(outReq)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadGateway)
-			return
-		}
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				fmt.Println(err)
-			}
-		}(resp.Body)
-		for k, v := range resp.Header {
-			for _, vv := range v {
-				w.Header().Add(k, vv)
-			}
-		}
-		w.WriteHeader(resp.StatusCode)
-		_, err = io.Copy(w, resp.Body)
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
+		proxy.ServeHTTP(w, r)
 	})
 
 	http.HandleFunc("/sign", func(w http.ResponseWriter, r *http.Request) {

@@ -13,7 +13,6 @@ You need to specify request method, url, name of a public certificate and a priv
 `X-Proxy-Url` -- requested URL  
 `X-Proxy-Cert` -- TLS public certificate name/path  
 `X-Proxy-Key` -- TLS private key name/path  
-`X-Proxy-Follow-Redirects` -- Flag whether proxy should follow redirects
 
 All headers which you want to pass to the actual server should be prefixed with `X-Request-`
 
