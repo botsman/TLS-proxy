@@ -23,5 +23,3 @@ In order to do that just send a request to `/sign` endpoint with your data in th
 `X-Proxy-Signature-Algorithm` -- signature algorithm (supported rs256 and ps256 values)  
 
 Proxy is meant to be run in the secured environment, that is why no authentication is implemented.  
-
-This project is just an experiment and the way for me to learn Go. Some (all?) of the things might be done in a better way.
