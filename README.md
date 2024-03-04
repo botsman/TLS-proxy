@@ -1,4 +1,4 @@
-# TLS and eIDAS proxy server
+# TLS and signature proxy server
 
 Simple proxy server meant to be run in secure a Google Cloud environment.
 
@@ -17,7 +17,7 @@ You need to specify request method, url, name of a public certificate and a priv
 All headers which you want to pass to the actual server should be prefixed with `X-Request-`
 
 
-2. Signing data with eIDAS private key  
+2. Signing data with PEM private key  
 In order to do that just send a request to `/sign` endpoint with your data in the body and following headers:  
 `X-Proxy-Key` -- private key name/path  
 `X-Proxy-Signature-Algorithm` -- signature algorithm (supported rs256 and ps256 values)  
